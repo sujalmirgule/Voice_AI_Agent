@@ -1,105 +1,160 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, ShieldCheck, Radio } from 'lucide-react';
+import { Sparkles, ShieldCheck, Activity, Compass, ArrowLeft } from 'lucide-react';
+import { apiClient } from '../lib/api';
 
-export default function Header() {
-  const [serverStatus, setServerStatus] = useState('checking');
+export default function Header({ onOpenWelcome }) {
+  const [healthData, setHealthData] = useState({ status: 'checking', groq_configured: false });
 
   useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.json())
+    apiClient.getHealth()
       .then(data => {
-        if (data.status === 'healthy') setServerStatus('healthy');
-        else setServerStatus('degraded');
+        setHealthData({ status: data.status, groq_configured: Boolean(data.groq_configured) });
       })
-      .catch(() => setServerStatus('offline'));
+      .catch(() => {
+        setHealthData({ status: 'offline', groq_configured: false });
+      });
   }, []);
 
   return (
     <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '1.25rem 2rem',
-      borderBottom: '1px solid var(--border-subtle)',
-      background: 'rgba(7, 13, 14, 0.85)',
-      backdropFilter: 'blur(10px)',
+      background: 'var(--bg-surface)',
+      borderBottom: '1px solid var(--border-color)',
+      padding: '0.75rem 1.75rem',
       position: 'sticky',
       top: 0,
-      zIndex: 50
+      zIndex: 50,
+      boxShadow: 'var(--shadow-sm)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-        <div style={{
-          width: '42px',
-          height: '42px',
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 0 20px rgba(16, 185, 129, 0.35)'
-        }}>
-          <Sparkles size={22} color="#ffffff" />
+      <div style={{
+        maxWidth: '1360px',
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        {/* Brand Identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '8px',
+            background: 'var(--grad-action)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            color: '#FFF8F2',
+            boxShadow: '0 2px 8px rgba(217, 119, 69, 0.3)'
+          }}>
+            <Sparkles size={17} />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                color: 'var(--text-primary)',
+                textTransform: 'uppercase'
+              }}>
+                Aura Skincare
+              </span>
+              <span style={{
+                background: 'rgba(217, 119, 69, 0.12)',
+                color: 'var(--accent-copper)',
+                border: '1px solid rgba(217, 119, 69, 0.35)',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '0.1rem 0.5rem',
+                letterSpacing: '0.04em'
+              }}>
+                VOICE CX
+              </span>
+            </div>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0 }}>
+              AI Customer Support Specialist • Aria (Indian English)
+            </p>
+          </div>
         </div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#f8fafc' }}>
-              Aura Skincare
-            </h1>
+
+        {/* Real-time System Connectivity Status & Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+          {/* Welcome Screen / Overview Toggle Button */}
+          {onOpenWelcome && (
+            <button
+              onClick={onOpenWelcome}
+              className="btn-secondary"
+              style={{
+                padding: '0.3rem 0.75rem',
+                fontSize: '0.72rem'
+              }}
+              title="Return to Welcome Screen & Overview"
+            >
+              <ArrowLeft size={12} />
+              <span>Overview</span>
+            </button>
+          )}
+
+          {/* API Health */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: '0.72rem',
+            background: healthData.status === 'healthy' ? 'var(--success-bg)' : 'var(--warning-bg)',
+            color: healthData.status === 'healthy' ? 'var(--success)' : 'var(--warning)',
+            padding: '0.24rem 0.7rem',
+            borderRadius: 'var(--radius-full)',
+            border: `1px solid ${healthData.status === 'healthy' ? 'var(--success-border)' : 'var(--warning-border)'}`
+          }}>
             <span style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#34d399',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '9999px',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              padding: '0.15rem 0.5rem'
-            }}>
-              VOICE CX
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              backgroundColor: healthData.status === 'healthy' ? 'var(--success)' : 'var(--warning)'
+            }} />
+            <span style={{ fontWeight: 600 }}>
+              {healthData.status === 'healthy' ? 'Express API Online' : 'Connecting to API...'}
             </span>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            AI Voice Support Specialist • Persona: Aria (Indian English)
-          </p>
-        </div>
-      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.45rem',
-          fontSize: '0.8rem',
-          color: serverStatus === 'healthy' ? '#34d399' : '#f59e0b',
-          background: 'var(--bg-surface-elevated)',
-          padding: '0.4rem 0.85rem',
-          borderRadius: '9999px',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          <span style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: serverStatus === 'healthy' ? '#10b981' : '#f59e0b',
-            boxShadow: serverStatus === 'healthy' ? '0 0 8px #10b981' : 'none'
-          }} />
-          <span style={{ fontWeight: 600 }}>
-            {serverStatus === 'healthy' ? 'Express API Online' : 'Connecting to API...'}
-          </span>
-        </div>
+          {/* AI Engine Status */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: '0.72rem',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            padding: '0.24rem 0.7rem',
+            borderRadius: 'var(--radius-full)',
+            border: '1px solid var(--border-color)'
+          }}>
+            <Activity size={12} color="var(--accent-copper)" />
+            <span style={{ fontWeight: 600 }}>
+              {healthData.groq_configured ? 'Groq LPU Active' : 'Deterministic Guardrails Active'}
+            </span>
+          </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.45rem',
-          fontSize: '0.8rem',
-          color: 'var(--text-secondary)',
-          background: 'var(--bg-surface-elevated)',
-          padding: '0.4rem 0.85rem',
-          borderRadius: '9999px',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          <ShieldCheck size={14} color="#10b981" />
-          <span>Brand Guardrails Active</span>
+          {/* Policy Guardrails Enforced */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: '0.72rem',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            padding: '0.24rem 0.7rem',
+            borderRadius: 'var(--radius-full)',
+            border: '1px solid var(--border-color)'
+          }}>
+            <ShieldCheck size={12} color="var(--success)" />
+            <span style={{ fontWeight: 600 }}>Policies Enforced</span>
+          </div>
         </div>
       </div>
     </header>

@@ -43,13 +43,13 @@ export const BRAND_INFO = {
  * Evaluates shipping fee for an order amount
  */
 export function calculateShippingFee(orderValue) {
-  if (typeof orderValue !== 'number' || isNaN(orderValue)) {
-    return { fee: 50, isFree: false, message: "Standard shipping fee of ₹50 applies." };
+  if (typeof orderValue !== 'number' || isNaN(orderValue) || orderValue < 0) {
+    return { fee: 50, isFree: false, valid: false, message: "Invalid order amount. Standard shipping fee of ₹50 applies." };
   }
   if (orderValue >= BRAND_INFO.policies.shipping.freeShippingThreshold) {
-    return { fee: 0, isFree: true, message: `Free delivery applied! Orders ₹${BRAND_INFO.policies.shipping.freeShippingThreshold} and above ship free.` };
+    return { fee: 0, isFree: true, valid: true, message: `Free delivery applied! Orders ₹${BRAND_INFO.policies.shipping.freeShippingThreshold} and above ship free.` };
   }
-  return { fee: 50, isFree: false, message: `Shipping fee is ₹50 for orders below ₹${BRAND_INFO.policies.shipping.freeShippingThreshold}. Standard delivery takes 3–5 business days.` };
+  return { fee: 50, isFree: false, valid: true, message: `Shipping fee is ₹50 for orders below ₹${BRAND_INFO.policies.shipping.freeShippingThreshold}. Standard delivery takes 3–5 business days.` };
 }
 
 /**
@@ -57,7 +57,7 @@ export function calculateShippingFee(orderValue) {
  */
 export function checkCancellationEligibility(order) {
   if (!order) return { eligible: false, message: "Order not found." };
-  if (order.status.toLowerCase() === 'processing') {
+  if (order.status && order.status.toLowerCase() === 'processing') {
     return {
       eligible: true,
       message: `Order ${order.order_id} is currently in Processing and can be cancelled immediately.`
@@ -65,7 +65,7 @@ export function checkCancellationEligibility(order) {
   }
   return {
     eligible: false,
-    message: `Order ${order.order_id} is currently ${order.status}. Under Aura Skincare policy, orders can only be cancelled while in Processing. However, you may refuse delivery at the doorstep.`
+    message: `Order ${order.order_id} is currently ${order.status || 'unknown'}. Under Aura Skincare policy, orders can only be cancelled while in Processing. However, you may refuse delivery at the doorstep.`
   };
 }
 
@@ -74,10 +74,10 @@ export function checkCancellationEligibility(order) {
  */
 export function checkReturnEligibility(order, daysSinceDelivery = null) {
   if (!order) return { eligible: false, message: "Order not found." };
-  if (order.status.toLowerCase() !== 'delivered') {
+  if (!order.status || order.status.toLowerCase() !== 'delivered') {
     return {
       eligible: false,
-      message: `Order ${order.order_id} is currently ${order.status}. Returns only apply to delivered items within 7 days.`
+      message: `Order ${order.order_id} is currently ${order.status || 'unknown'}. Returns only apply to delivered items within 7 days.`
     };
   }
   const days = daysSinceDelivery !== null ? daysSinceDelivery : order.delivered_days_ago;
@@ -90,5 +90,61 @@ export function checkReturnEligibility(order, daysSinceDelivery = null) {
   return {
     eligible: true,
     message: `Order ${order.order_id} is within our 7-day return window. You can return unopened, unused products in their original packaging.`
+  };
+}
+
+/**
+ * Checks Cash on Delivery (COD) eligibility
+ */
+export function checkCodEligibility(orderValue) {
+  if (typeof orderValue !== 'number' || isNaN(orderValue) || orderValue < 0) {
+    return {
+      eligible: false,
+      message: "Invalid order amount for Cash on Delivery evaluation."
+    };
+  }
+  if (orderValue <= BRAND_INFO.policies.cod.maxLimit) {
+    return {
+      eligible: true,
+      maxLimit: BRAND_INFO.policies.cod.maxLimit,
+      message: `Cash on Delivery is available for this order of ₹${orderValue}. You can pay via Cash or UPI at your doorstep.`
+    };
+  }
+  return {
+    eligible: false,
+    maxLimit: BRAND_INFO.policies.cod.maxLimit,
+    message: `Cash on Delivery is available for orders up to ₹2,500. For orders of ₹${orderValue}, please use online prepaid payment.`
+  };
+}
+
+/**
+ * Checks damaged or defective item report eligibility
+ */
+export function checkDamagedReportEligibility(hoursSinceDelivery, hasPhotos = false) {
+  if (typeof hoursSinceDelivery !== 'number' || isNaN(hoursSinceDelivery) || hoursSinceDelivery < 0) {
+    return {
+      eligible: false,
+      message: "Valid hours since delivery is required to assess damaged item claims."
+    };
+  }
+  if (hoursSinceDelivery <= BRAND_INFO.policies.returns.damagedReportHours) {
+    if (hasPhotos) {
+      return {
+        eligible: true,
+        replacementApproved: true,
+        message: "Your damaged item report is within the 48-hour window with photos verified. A free replacement has been approved."
+      };
+    }
+    return {
+      eligible: true,
+      replacementApproved: false,
+      pendingPhotos: true,
+      message: "Your report is within the 48-hour window. Please provide photos of the damaged product and box to approve your free replacement."
+    };
+  }
+  return {
+    eligible: false,
+    replacementApproved: false,
+    message: `The 48-hour reporting window has expired (${hoursSinceDelivery} hours since delivery). Damaged products must be reported within 48 hours.`
   };
 }

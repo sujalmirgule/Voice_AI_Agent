@@ -1,0 +1,22 @@
+{
+  "orderTracking": [
+    { "speaker": "Customer", "text": "Can you tell me where my order ORD-101 is?" },
+    { "speaker": "Aria", "text": "Your order ORD-101 for Priya Sharma is Out for Delivery via BlueDart and is expected by 6 PM today." }
+  ],
+  "returnPolicyEnforcement": [
+    { "speaker": "Customer", "text": "I bought this 20 days ago and have opened it. Can I return it?" },
+    { "speaker": "Aria", "text": "I am sorry, but our return policy only accepts returns within 7 days of delivery for unopened, unused products in original packaging." }
+  ],
+  "cancellationRequest": [
+    { "speaker": "Customer", "text": "Can I cancel my order ORD-103?" },
+    { "speaker": "Aria", "text": "Your order ORD-103 is currently in Processing and has been marked for cancellation." }
+  ],
+  "outOfScope": [
+    { "speaker": "Customer", "text": "Can you book me a flight to Goa?" },
+    { "speaker": "Aria", "text": "I can only help with Aura Skincare orders, shipping, and product return policies." }
+  ],
+  "damagedItem": [
+    { "speaker": "Customer", "text": "My package arrived damaged." },
+    { "speaker": "Aria", "text": "Please report damaged products within 48 hours of delivery with photos for a free replacement." }
+  ]
+}

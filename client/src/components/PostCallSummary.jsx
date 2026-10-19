@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileJson, Check, Copy, Award, ArrowRight, RefreshCw } from 'lucide-react';
+import { FileJson, Check, Copy, RefreshCw, CheckCircle, Clock, Sparkles } from 'lucide-react';
 
 export default function PostCallSummary({ summary, transcript, onReset }) {
   const [copied, setCopied] = useState(false);
@@ -15,185 +15,353 @@ export default function PostCallSummary({ summary, transcript, onReset }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'RESOLVED':
-        return <span className="pill-badge pill-success">Resolved</span>;
-      case 'ESCALATED':
-        return <span className="pill-badge pill-warning">Escalated</span>;
+        return (
+          <span style={{
+            background: 'var(--success-bg)',
+            color: 'var(--success)',
+            border: '1px solid var(--success-border)',
+            padding: '0.22rem 0.8rem',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.74rem',
+            fontWeight: 750,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem'
+          }}>
+            <CheckCircle size={13} />
+            <span>RESOLVED</span>
+          </span>
+        );
+      case 'PENDING_CUSTOMER_ACTION':
+        return (
+          <span style={{
+            background: 'var(--warning-bg)',
+            color: 'var(--warning)',
+            border: '1px solid var(--warning-border)',
+            padding: '0.22rem 0.8rem',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.74rem',
+            fontWeight: 750,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem'
+          }}>
+            <Clock size={13} />
+            <span>PENDING_CUSTOMER_ACTION</span>
+          </span>
+        );
       default:
-        return <span className="pill-badge pill-info">{status}</span>;
+        return (
+          <span style={{
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-color)',
+            padding: '0.22rem 0.8rem',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.74rem',
+            fontWeight: 750,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
+          }}>
+            {status}
+          </span>
+        );
     }
   };
 
   return (
-    <div className="glass-panel" style={{
+    <div className="skincare-card" style={{
       marginTop: '1.5rem',
       padding: '1.75rem',
-      border: '1px solid rgba(16, 185, 129, 0.35)',
-      background: 'linear-gradient(180deg, rgba(19, 34, 37, 0.85) 0%, rgba(13, 23, 25, 0.95) 100%)'
+      border: '1px solid var(--border-color)',
+      background: 'var(--bg-surface)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+      {/* Summary Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '1.25rem',
+        borderBottom: '1px solid var(--border-color)',
+        paddingBottom: '0.95rem',
+        flexWrap: 'wrap',
+        gap: '0.85rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            background: 'rgba(16, 185, 129, 0.15)',
-            padding: '0.45rem',
+            width: '40px',
+            height: '40px',
+            background: 'rgba(217, 130, 82, 0.12)',
+            border: '1px solid rgba(217, 130, 82, 0.3)',
             borderRadius: '10px',
-            color: '#34d399'
+            color: 'var(--accent-copper)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
             <FileJson size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
-              Post-Call Summary & Structured Outcome
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+              <span style={{
+                background: 'rgba(102, 184, 138, 0.12)',
+                color: 'var(--success)',
+                border: '1px solid rgba(102, 184, 138, 0.28)',
+                padding: '0.12rem 0.55rem',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.68rem',
+                fontWeight: 750,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
+                <span>Call Concluded • Post-Call Summary Ready</span>
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.02em', margin: 0 }}>
+              Post-Call Intelligence Summary
             </h2>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Call concluded • Auto-generated structured JSON artifact
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Structured schema extraction artifact generated deterministically from call dialogue
             </p>
           </div>
         </div>
 
+        {/* Top Quick Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <button
+            id="copy-json-btn"
             onClick={handleCopy}
-            style={{
-              background: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              color: copied ? '#34d399' : 'var(--text-secondary)',
-              padding: '0.45rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              cursor: 'pointer'
-            }}
+            className="btn-secondary"
+            title="Copy structured summary JSON to clipboard"
           >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? <Check size={13} color="var(--success)" /> : <Copy size={13} />}
             <span>{copied ? 'Copied JSON!' : 'Copy JSON'}</span>
-          </button>
-
-          <button
-            onClick={onReset}
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              padding: '0.45rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              cursor: 'pointer'
-            }}
-          >
-            <RefreshCw size={14} />
-            <span>New Call</span>
           </button>
         </div>
       </div>
 
-      {/* Grid of Key Outcomes */}
+      {/* 4-Metric Key Attribute Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '0.85rem',
         marginBottom: '1.25rem'
       }}>
+        {/* Customer Intent */}
         <div style={{
-          background: 'var(--bg-surface-elevated)',
-          border: '1px solid var(--border-subtle)',
+          background: 'var(--bg-elevated)',
+          padding: '1rem',
           borderRadius: 'var(--radius-md)',
-          padding: '0.85rem'
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem'
         }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>
+          <div style={{
+            fontSize: '0.70rem',
+            fontWeight: 750,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em'
+          }}>
             Customer Intent
           </div>
-          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#38bdf8' }}>
+          <div style={{
+            fontSize: '0.94rem',
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            fontFamily: 'JetBrains Mono',
+            letterSpacing: '0.02em'
+          }}>
             {summary.customer_intent || 'GENERAL_INQUIRY'}
           </div>
         </div>
 
+        {/* Target Order ID */}
         <div style={{
-          background: 'var(--bg-surface-elevated)',
-          border: '1px solid var(--border-subtle)',
+          background: 'var(--bg-elevated)',
+          padding: '1rem',
           borderRadius: 'var(--radius-md)',
-          padding: '0.85rem'
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem'
         }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>
+          <div style={{
+            fontSize: '0.70rem',
+            fontWeight: 750,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em'
+          }}>
             Target Order ID
           </div>
-          <div style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'JetBrains Mono', color: summary.order_id ? '#34d399' : 'var(--text-muted)' }}>
-            {summary.order_id || 'N/A'}
+          <div style={{
+            fontSize: '0.94rem',
+            fontWeight: 800,
+            color: summary.order_id ? 'var(--accent-copper)' : 'var(--text-secondary)',
+            fontFamily: summary.order_id ? 'JetBrains Mono' : 'inherit'
+          }}>
+            {summary.order_id || 'None specified'}
           </div>
         </div>
 
+        {/* Resolution Status */}
         <div style={{
-          background: 'var(--bg-surface-elevated)',
-          border: '1px solid var(--border-subtle)',
+          background: 'var(--bg-elevated)',
+          padding: '1rem',
           borderRadius: 'var(--radius-md)',
-          padding: '0.85rem'
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem'
         }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>
+          <div style={{
+            fontSize: '0.70rem',
+            fontWeight: 750,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em'
+          }}>
             Resolution Status
           </div>
-          <div style={{ marginTop: '0.15rem' }}>
-            {getStatusBadge(summary.resolution_status)}
+          <div>
+            {getStatusBadge(summary.resolution_status || 'RESOLVED')}
           </div>
         </div>
 
+        {/* Total Dialogue Turns */}
         <div style={{
-          background: 'var(--bg-surface-elevated)',
-          border: '1px solid var(--border-subtle)',
+          background: 'var(--bg-elevated)',
+          padding: '1rem',
           borderRadius: 'var(--radius-md)',
-          padding: '0.85rem'
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem'
         }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.25rem' }}>
-            Total Dialogue Turns
+          <div style={{
+            fontSize: '0.70rem',
+            fontWeight: 750,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em'
+          }}>
+            Dialogue Turns
           </div>
-          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
-            {summary.total_turns || transcript.length} turns
+          <div style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            {transcript ? transcript.length : summary.total_turns || 0} turns
           </div>
         </div>
       </div>
 
-      {/* Summary Text Callout */}
+      {/* Human-Readable Summary */}
       <div style={{
-        background: 'rgba(16, 185, 129, 0.08)',
-        border: '1px solid rgba(16, 185, 129, 0.25)',
+        background: 'var(--bg-elevated)',
+        padding: '1.25rem',
         borderRadius: 'var(--radius-md)',
-        padding: '0.85rem 1rem',
-        marginBottom: '1.25rem',
-        fontSize: '0.85rem',
-        color: '#e2e8f0',
-        lineHeight: 1.5
+        border: '1px solid var(--border-color)',
+        marginBottom: '1.25rem'
       }}>
-        <strong style={{ color: '#34d399' }}>Call Summary: </strong>
-        {summary.call_summary}
+        <div style={{
+          fontSize: '0.74rem',
+          fontWeight: 750,
+          color: 'var(--accent-amber)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: '0.45rem'
+        }}>
+          Human-Readable Call Summary
+        </div>
+        <p style={{
+          fontSize: '0.90rem',
+          color: 'var(--text-primary)',
+          lineHeight: 1.65,
+          margin: 0
+        }}>
+          {summary.call_summary}
+        </p>
       </div>
 
       {/* Structured JSON Output Box */}
-      <div>
-        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-          Raw Structured JSON Output (Assessment Requirement D.2):
-        </div>
-        <pre style={{
-          background: '#040809',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1rem',
-          fontSize: '0.82rem',
-          color: '#34d399',
-          overflowX: 'auto',
-          lineHeight: 1.5
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '0.55rem'
         }}>
-          {JSON.stringify({
-            customer_intent: summary.customer_intent,
-            order_id: summary.order_id,
-            resolution_status: summary.resolution_status,
-            call_summary: summary.call_summary
-          }, null, 2)}
+          <span style={{
+            fontSize: '0.75rem',
+            fontWeight: 750,
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
+          }}>
+            Structured JSON Output
+          </span>
+          <button
+            onClick={handleCopy}
+            className="btn-secondary"
+            style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem' }}
+          >
+            {copied ? <Check size={12} color="var(--success)" /> : <Copy size={12} />}
+            <span>{copied ? 'Copied JSON!' : 'Copy JSON'}</span>
+          </button>
+        </div>
+
+        <pre style={{
+          background: '#0D0C0B',
+          color: 'var(--accent-amber)',
+          padding: '1.25rem',
+          borderRadius: 'var(--radius-md)',
+          fontSize: '0.82rem',
+          lineHeight: 1.55,
+          overflowX: 'auto',
+          border: '1px solid var(--border-color)',
+          margin: 0,
+          fontFamily: 'JetBrains Mono, monospace'
+        }}>
+          <code>{JSON.stringify(summary, null, 2)}</code>
         </pre>
+      </div>
+
+      {/* Bottom Action Footer */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        flexWrap: 'wrap',
+        borderTop: '1px solid var(--border-color)',
+        paddingTop: '1.25rem'
+      }}>
+        <button
+          id="new-call-btn"
+          onClick={onReset}
+          className="btn-primary"
+          style={{ padding: '0.85rem 2rem' }}
+          title="Start New Call session"
+        >
+          <RefreshCw size={15} />
+          <span>New Call</span>
+        </button>
+
+        <button
+          onClick={handleCopy}
+          className="btn-secondary"
+          style={{ padding: '0.85rem 1.85rem' }}
+          title="Copy structured summary JSON to clipboard"
+        >
+          <Copy size={15} />
+          <span>{copied ? 'Copied JSON!' : 'Copy JSON'}</span>
+        </button>
       </div>
     </div>
   );

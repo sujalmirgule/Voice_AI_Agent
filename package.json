@@ -8,9 +8,9 @@
   },
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix client install",
-    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install",
+    "build": "npm --prefix client install --include=dev && npm --prefix client run build && npm --prefix server install",
     "start": "node server/src/server.js",
-    "test": "npm --prefix server test"
+    "test": "node --test tests/**/*.test.js"
   },
   "keywords": [
     "voice-ai",

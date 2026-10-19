@@ -1,0 +1,39 @@
+[
+  {
+    "order_id": "ORD-101",
+    "customer": "Priya Sharma",
+    "product": "Vitamin C Serum (30ml)",
+    "value": 699,
+    "status": "Out for Delivery",
+    "courier": "BlueDart",
+    "tracking_number": "BD-982103",
+    "eta": "Expected by 6 PM today",
+    "can_cancel": false,
+    "can_return": false
+  },
+  {
+    "order_id": "ORD-102",
+    "customer": "Rahul Verma",
+    "product": "Hydrating Sunscreen SPF 50",
+    "value": 499,
+    "status": "Delivered",
+    "courier": "Delhivery",
+    "tracking_number": "DL-441029",
+    "eta": "Delivered 14 days ago",
+    "delivered_days_ago": 14,
+    "can_cancel": false,
+    "can_return": false
+  },
+  {
+    "order_id": "ORD-103",
+    "customer": "Ananya Patel",
+    "product": "Green Tea Face Wash + Toner",
+    "value": 850,
+    "status": "Processing",
+    "courier": null,
+    "tracking_number": null,
+    "eta": "Standard delivery takes 3-5 business days",
+    "can_cancel": true,
+    "can_return": false
+  }
+]

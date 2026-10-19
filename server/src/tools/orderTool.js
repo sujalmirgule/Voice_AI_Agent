@@ -25,12 +25,12 @@ export function getAllOrders() {
  */
 export function normalizeOrderId(rawId) {
   if (!rawId || typeof rawId !== 'string') return null;
-  const cleaned = rawId.trim().toUpperCase().replace(/\s+/g, '-');
-  const match = cleaned.match(/ORD[-]?(\d+)/);
+  const strId = rawId.trim().toUpperCase().replace(/\s+/g, '-');
+  const match = strId.match(/(?:ORD|ORDER)[-]?(\d+)/i);
   if (match) {
     return `ORD-${match[1]}`;
   }
-  return cleaned;
+  return strId;
 }
 
 /**
@@ -66,7 +66,13 @@ export function getOrderDetails(orderId) {
     };
   }
 
-  const normalizedId = normalizeOrderId(orderId);
+  const safeIdString = typeof orderId === 'string'
+    ? orderId
+    : typeof orderId === 'object' && orderId !== null && orderId.order_id
+      ? String(orderId.order_id)
+      : String(orderId);
+
+  const normalizedId = normalizeOrderId(safeIdString);
   const orders = getAllOrders();
   const foundOrder = orders.find(o => o.order_id === normalizedId);
 
@@ -74,8 +80,8 @@ export function getOrderDetails(orderId) {
     return {
       success: false,
       error: "ORDER_NOT_FOUND",
-      searched_id: orderId,
-      message: `I could not locate an order with ID "${orderId}". Available sample order IDs in our system are ORD-101, ORD-102, and ORD-103. Please ask the customer to verify or re-check the number.`
+      searched_id: safeIdString,
+      message: `I could not locate an order with ID "${safeIdString}". Available sample order IDs in our system are ORD-101, ORD-102, and ORD-103. Please ask the customer to verify or re-check the number.`
     };
   }
 

@@ -3,12 +3,22 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { config } from './config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
+
+// Security Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 // Middleware
 app.use(cors());
@@ -30,11 +40,14 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api', apiRouter);
 
+// Catch-all 404 for unmatched /api requests
+app.all('/api/*', notFoundHandler);
+
 // Serve built React frontend in production or if client/dist exists
 const clientDistPath = path.resolve(__dirname, '../../client/dist');
 app.use(express.static(clientDistPath));
 
-// Fallback to index.html for client-side SPA routing
+// Fallback to index.html for client-side SPA routing (local express serving)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
@@ -55,8 +68,12 @@ app.get('*', (req, res, next) => {
   });
 });
 
-// Start server if run directly
-if (process.env.NODE_ENV !== 'test') {
+// Global centralized error handler
+app.use(errorHandler);
+
+// Start server ONLY if executed directly (e.g. `node server/src/server.js`)
+const isDirectRun = process.argv[1] && path.resolve(__filename) === path.resolve(process.argv[1]);
+if (isDirectRun && process.env.NODE_ENV !== 'test') {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`===============================================`);
     console.log(`🌿 Aura Skincare Voice CX Server Active`);

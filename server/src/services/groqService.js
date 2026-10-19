@@ -20,6 +20,8 @@ Brand Policies & Knowledge:
 6. Order Inquiries: Whenever the customer mentions an order ID (like ORD-101, ORD-102, ORD-103) or asks to track, cancel, or return an order, use the "get_order_details" tool. Never guess or hallucinate order details or tracking numbers. If the order ID is missing or invalid, gracefully ask them to confirm it.
 `;
 
+const API_TIMEOUT_MS = 8000; // 8-second timeout for snappy voice fallback
+
 /**
  * Executes a conversational turn with Groq or local fallback
  */
@@ -30,7 +32,7 @@ export async function processConversationTurn({ messages, apiKey }) {
     try {
       return await callGroqLlm(messages, activeKey);
     } catch (err) {
-      console.warn("Groq API call failed, falling back to local policy engine:", err.message);
+      console.warn("Groq API call failed or timed out, falling back to deterministic policy engine:", err.message);
       return executeLocalFallbackTurn(messages);
     }
   }
@@ -43,13 +45,14 @@ export async function processConversationTurn({ messages, apiKey }) {
  * Calls Groq Llama 3.3 70B with function calling
  */
 async function callGroqLlm(messages, apiKey) {
+  const groqModel = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
   const groqMessages = [
     { role: "system", content: SYSTEM_PROMPT },
     ...messages
   ];
 
   const payload = {
-    model: "llama-3.3-70b-versatile",
+    model: groqModel,
     messages: groqMessages,
     tools: [orderToolDefinition],
     tool_choice: "auto",
@@ -61,9 +64,11 @@ async function callGroqLlm(messages, apiKey) {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Connection": "close"
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS)
   });
 
   if (!response.ok) {
@@ -78,12 +83,14 @@ async function callGroqLlm(messages, apiKey) {
   // Handle function/tool calls
   if (message.tool_calls && message.tool_calls.length > 0) {
     const toolCall = message.tool_calls[0];
-    if (toolCall.function.name === "get_order_details") {
+    if (toolCall.function && toolCall.function.name === "get_order_details") {
       let args = {};
       try {
-        args = JSON.parse(toolCall.function.arguments);
+        args = typeof toolCall.function.arguments === 'string'
+          ? JSON.parse(toolCall.function.arguments)
+          : toolCall.function.arguments;
       } catch (e) {
-        args = { order_id: toolCall.function.arguments };
+        args = { order_id: String(toolCall.function.arguments) };
       }
 
       const toolResult = getOrderDetails(args.order_id);
@@ -104,35 +111,40 @@ async function callGroqLlm(messages, apiKey) {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Connection": "close"
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: groqModel,
           messages: followUpMessages,
           temperature: 0.3,
           max_tokens: 300
-        })
+        }),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS)
       });
 
-      if (followUpResponse.ok) {
-        const followUpData = await followUpResponse.json();
-        return {
-          agent_text: followUpData.choices[0].message.content,
-          tool_called: {
-            name: "get_order_details",
-            args: args,
-            result: toolResult
-          },
-          provider: "groq-llama-3.3-70b"
-        };
+      if (!followUpResponse.ok) {
+        const errorText = await followUpResponse.text();
+        throw new Error(`Groq tool follow-up error (${followUpResponse.status}): ${errorText}`);
       }
+
+      const followUpData = await followUpResponse.json();
+      return {
+        agent_text: followUpData.choices[0].message.content,
+        tool_called: {
+          name: "get_order_details",
+          args: args,
+          result: toolResult
+        },
+        provider: `groq-${groqModel}`
+      };
     }
   }
 
   return {
-    agent_text: message.content,
+    agent_text: message.content || "Namaste! I'm Aria from Aura Skincare. How can I assist you with your orders or policies today?",
     tool_called: null,
-    provider: "groq-llama-3.3-70b"
+    provider: `groq-${groqModel}`
   };
 }
 
@@ -145,12 +157,13 @@ export async function transcribeAudioWithGroq({ audioBuffer, mimeType, apiKey })
     throw new Error("GROQ_API_KEY is not configured for server-side audio transcription.");
   }
 
+  const sttModel = process.env.GROQ_STT_MODEL || process.env.GROQ_WHISPER_MODEL || 'whisper-large-v3-turbo';
   const formData = new FormData();
   formData.append('file', audioBuffer, {
     filename: 'utterance.webm',
     contentType: mimeType || 'audio/webm'
   });
-  formData.append('model', 'whisper-large-v3-turbo');
+  formData.append('model', sttModel);
   formData.append('language', 'en');
   formData.append('prompt', 'Aura Skincare, ORD-101, ORD-102, ORD-103, Priya Sharma, Rahul Verma, Ananya Patel');
 
@@ -158,9 +171,11 @@ export async function transcribeAudioWithGroq({ audioBuffer, mimeType, apiKey })
     method: "POST",
     headers: {
       "Authorization": `Bearer ${activeKey}`,
+      "Connection": "close",
       ...formData.getHeaders()
     },
-    body: formData
+    body: formData,
+    signal: AbortSignal.timeout(API_TIMEOUT_MS)
   });
 
   if (!response.ok) {
@@ -173,6 +188,71 @@ export async function transcribeAudioWithGroq({ audioBuffer, mimeType, apiKey })
 }
 
 /**
+ * Generates spoken audio via Groq Text-to-Speech API
+ */
+export async function generateSpeechWithGroq({ text, voice, apiKey }) {
+  const activeKey = apiKey || process.env.GROQ_API_KEY;
+  if (!activeKey || activeKey === 'gsk_your_groq_api_key_placeholder') {
+    return {
+      success: false,
+      fallback: 'browser_synthesis',
+      reason: 'GROQ_API_KEY_NOT_CONFIGURED',
+      message: 'Groq API key not configured for TTS.'
+    };
+  }
+
+  const model = process.env.GROQ_TTS_MODEL || 'canopylabs/orpheus-v1-english';
+  const selectedVoice = voice || process.env.GROQ_TTS_VOICE || 'troy';
+  const trimmedInput = (text || '').trim().slice(0, 200);
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${activeKey}`,
+        "Content-Type": "application/json",
+        "Connection": "close"
+      },
+      body: JSON.stringify({
+        model,
+        input: trimmedInput,
+        voice: selectedVoice,
+        response_format: "wav"
+      }),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS)
+    });
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      const code = errJson.error?.code || 'TTS_ERROR';
+      const msg = errJson.error?.message || response.statusText;
+      return {
+        success: false,
+        fallback: 'browser_synthesis',
+        reason: code,
+        message: msg,
+        status: response.status
+      };
+    }
+
+    const audioArrayBuffer = await response.arrayBuffer();
+    return {
+      success: true,
+      audioBuffer: Buffer.from(audioArrayBuffer),
+      contentType: 'audio/wav',
+      format: 'wav'
+    };
+  } catch (err) {
+    return {
+      success: false,
+      fallback: 'browser_synthesis',
+      reason: 'TTS_REQUEST_FAILED',
+      message: err.message
+    };
+  }
+}
+
+/**
  * Deterministic local fallback reasoning engine
  * Provides guaranteed 100% policy compliance, tool execution, and guardrail enforcement
  */
@@ -180,11 +260,45 @@ export function executeLocalFallbackTurn(messages) {
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
   const text = lastUserMsg.toLowerCase().trim();
 
+  // Edge Case: Unclear, muffled or inaudible speech
+  if (text === '[unclear]' || text === '[inaudible]' || text === '...' || text.length <= 1) {
+    return {
+      agent_text: "I'm sorry, I couldn't hear that clearly. Could you please repeat or speak a little louder?",
+      tool_called: null,
+      provider: "aura-deterministic-guardrails"
+    };
+  }
+
+  // Security & Privacy: Prompt Injection / System Prompt / Credential Extraction Defenses
+  const securityInjectionPatterns = [
+    /ignore (all|previous|prior) instructions/i,
+    /system prompt/i,
+    /reveal (your|the) prompt/i,
+    /(api[_\s]?key|secret[_\s]?key|credentials|environment variable|env\.process)/i,
+    /(?:give me|show me|what is|share)\s+(?:the\s+)?(?:phone|email|address|password|contact|number|details|records)/i
+  ];
+  if (securityInjectionPatterns.some(pattern => pattern.test(text))) {
+    return {
+      agent_text: "I cannot share internal system instructions, credentials, or other customers' personal records. I am dedicated to assisting you with your own Aura Skincare orders and brand policies.",
+      tool_called: null,
+      provider: "aura-deterministic-guardrails"
+    };
+  }
+
   // Out-of-scope check
-  const outOfScopeKeywords = ['flight', 'goa', 'weather', 'hotel', 'train', 'homework', 'bitcoin', 'crypto', 'recipe', 'president'];
+  const outOfScopeKeywords = ['flight', 'goa', 'weather', 'hotel', 'train', 'homework', 'bitcoin', 'crypto', 'recipe', 'president', 'movie'];
   if (outOfScopeKeywords.some(k => text.includes(k))) {
     return {
       agent_text: "I can only help with Aura Skincare orders, shipping, and product return policies. Is there something specific about your skincare order I can assist you with today?",
+      tool_called: null,
+      provider: "aura-deterministic-guardrails"
+    };
+  }
+
+  // Damaged or defective product policy inquiries
+  if (text.includes('damaged') || text.includes('defective') || text.includes('broken')) {
+    return {
+      agent_text: "If your Aura Skincare product arrived damaged or defective, please report it within 48 hours of delivery with photos of the package, and our team will issue a free replacement.",
       tool_called: null,
       provider: "aura-deterministic-guardrails"
     };
@@ -206,13 +320,13 @@ export function executeLocalFallbackTurn(messages) {
 
     if (!orderInfo.success) {
       return {
-        agent_text: `I couldn't locate an order with ID "${rawId}". Could you please verify the number? Our test orders are ORD-101, ORD-102, and ORD-103.`,
+        agent_text: `I couldn't locate an order with ID "${rawId}". Could you please verify or repeat the ID? Available test orders are ORD-101, ORD-102, and ORD-103.`,
         tool_called: toolExecution,
         provider: "aura-deterministic-guardrails"
       };
     }
 
-    // Cancellation request
+    // Cancellation request with specific order ID
     if (text.includes('cancel')) {
       if (orderInfo.can_cancel) {
         return {
@@ -229,7 +343,7 @@ export function executeLocalFallbackTurn(messages) {
       }
     }
 
-    // Return request
+    // Return request with specific order ID
     if (text.includes('return') || text.includes('refund')) {
       if (orderInfo.status === 'Delivered') {
         if (orderInfo.can_return) {
@@ -274,6 +388,15 @@ export function executeLocalFallbackTurn(messages) {
         provider: "aura-deterministic-guardrails"
       };
     }
+  }
+
+  // Order tracking inquiry without providing order ID
+  if (text.includes('track') || text.includes('where is my order') || text.includes('check my order') || text.includes('my package')) {
+    return {
+      agent_text: "I would be glad to help you track your order! Could you please provide your Aura Skincare order ID, such as ORD-101?",
+      tool_called: null,
+      provider: "aura-deterministic-guardrails"
+    };
   }
 
   // Shipping policy question
