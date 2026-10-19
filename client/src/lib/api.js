@@ -11,7 +11,13 @@ export function createApiClient(baseUrl = '') {
     const timeoutId = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT_MS);
 
     try {
-      const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}${endpoint}` : endpoint;
+      const cleanBase = baseUrl ? baseUrl.replace(/\/$/, '') : '';
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      const url = cleanBase
+        ? (cleanBase.endsWith('/api') && cleanEndpoint.startsWith('/api'))
+          ? `${cleanBase}${cleanEndpoint.slice(4)}`
+          : `${cleanBase}${cleanEndpoint}`
+        : cleanEndpoint;
       const res = await fetch(url, {
         ...options,
         signal: controller.signal
@@ -97,4 +103,8 @@ export function createApiClient(baseUrl = '') {
   };
 }
 
-export const apiClient = createApiClient();
+// Resolve default API base URL: reads VITE_API_BASE_URL when deployed separately,
+// falls back to empty string for local dev (using Vite /api proxy) or same-origin.
+const defaultBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '';
+
+export const apiClient = createApiClient(defaultBaseUrl);

@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
+    "build": "node -e \"console.log('Aura Voice backend ready for serverless execution')\"",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test ../tests/**/*.test.js"
