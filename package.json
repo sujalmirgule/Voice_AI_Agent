@@ -1,0 +1,28 @@
+{
+  "name": "aura-skincare-voice-cx",
+  "version": "1.0.0",
+  "description": "Aura Skincare AI Voice Customer Support Agent (Unified Full-Stack Service)",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install",
+    "start": "node server/src/server.js",
+    "test": "npm --prefix server test"
+  },
+  "keywords": [
+    "voice-ai",
+    "customer-support",
+    "groq",
+    "llama-3.3",
+    "whisper",
+    "speech-recognition",
+    "express",
+    "react",
+    "vite"
+  ],
+  "author": "Ganesh (Candidate)",
+  "license": "MIT"
+}
