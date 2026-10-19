@@ -37,8 +37,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes
+// API Routes (supports both /api/* and direct /* if serverless handler strips the prefix)
 app.use('/api', apiRouter);
+app.use(apiRouter);
 
 // Catch-all 404 for unmatched /api requests
 app.all('/api/*', notFoundHandler);

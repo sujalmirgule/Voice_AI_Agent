@@ -7,17 +7,73 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ordersFilePath = path.join(__dirname, '../data/orders.json');
 
+const DEFAULT_ORDERS = [
+  {
+    order_id: "ORD-101",
+    customer: "Priya Sharma",
+    product: "Vitamin C Serum (30ml)",
+    value: 699,
+    status: "Out for Delivery",
+    courier: "BlueDart",
+    tracking_number: "BD-982103",
+    eta: "Expected by 6 PM today",
+    delivered_days_ago: null,
+    notes: "BlueDart — BD-982103. Expected by 6 PM today",
+    can_cancel: false,
+    cancellation_reason: "Order is already Out for Delivery and cannot be cancelled online. You may politely refuse delivery at the doorstep if you no longer want the package.",
+    can_return: false,
+    return_reason: "Product has not yet been delivered."
+  },
+  {
+    order_id: "ORD-102",
+    customer: "Rahul Verma",
+    product: "Hydrating Sunscreen SPF 50",
+    value: 499,
+    status: "Delivered",
+    courier: "Delhivery",
+    tracking_number: "DL-441029",
+    eta: "Delivered 14 days ago",
+    delivered_days_ago: 14,
+    notes: "Delhivery — DL-441029. Delivered 14 days ago",
+    can_cancel: false,
+    cancellation_reason: "Order has already been delivered and cannot be cancelled.",
+    can_return: false,
+    return_reason: "Aura Skincare return policy allows returns within 7 days of delivery for unopened, unused items. This order was delivered 14 days ago, so it falls outside our return window."
+  },
+  {
+    order_id: "ORD-103",
+    customer: "Ananya Patel",
+    product: "Green Tea Face Wash + Toner",
+    value: 850,
+    status: "Processing",
+    courier: null,
+    tracking_number: null,
+    eta: "Standard delivery takes 3-5 business days",
+    delivered_days_ago: null,
+    notes: "Ordered 3 hours ago. Eligible for cancellation",
+    can_cancel: true,
+    cancellation_reason: "Order is currently in Processing status and is eligible for immediate cancellation.",
+    can_return: false,
+    return_reason: "Product has not yet been shipped or delivered."
+  }
+];
+
 /**
- * Loads all orders from orders.json
+ * Loads all orders from orders.json with guaranteed fallback for serverless deployments
  */
 export function getAllOrders() {
   try {
-    const rawData = fs.readFileSync(ordersFilePath, 'utf8');
-    return JSON.parse(rawData);
+    if (fs.existsSync(ordersFilePath)) {
+      const rawData = fs.readFileSync(ordersFilePath, 'utf8');
+      const parsed = JSON.parse(rawData);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
   } catch (error) {
-    console.error('Failed to load orders.json:', error);
-    return [];
+    console.warn('Falling back to embedded orders dataset:', error.message);
   }
+  return DEFAULT_ORDERS;
 }
 
 /**
