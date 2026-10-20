@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import CallInterface from './components/CallInterface';
 import OrdersHelper from './components/OrdersHelper';
@@ -9,8 +9,29 @@ import CompactOrderSelector from './components/CompactOrderSelector';
 import { apiClient } from './lib/api';
 import { Sparkles, Phone, CheckCircle2, ShieldCheck, Compass, Home, Mic, Package as PackageIcon, Shield, History } from 'lucide-react';
 
+/**
+ * Route resolution helpers for Aura Voice CX
+ * Maps root / and /welcome to the Landing Page.
+ * Maps /workspace, /dashboard, and /demo to the interactive workspace.
+ */
+export function isWorkspacePath(pathname) {
+  if (!pathname) return false;
+  const path = pathname.split('?')[0].split('#')[0].toLowerCase().replace(/\/+$/, '') || '/';
+  return path === '/workspace' || path === '/dashboard' || path === '/demo';
+}
+
+export function getViewFromPath(pathname) {
+  return isWorkspacePath(pathname) ? 'workspace' : 'welcome';
+}
+
 export default function App() {
-  const [currentView, setCurrentView] = useState('workspace'); // default directly to compact workspace
+  // Route-aware initial view: default to 'welcome' on /; render 'workspace' on /workspace or /dashboard
+  const [currentView, setCurrentView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getViewFromPath(window.location.pathname);
+    }
+    return 'welcome';
+  });
   const [isCallActive, setIsCallActive] = useState(false);
   const [agentState, setAgentState] = useState('idle'); // idle | listening | thinking | speaking | error
   const [transcript, setTranscript] = useState([]);
@@ -219,12 +240,35 @@ export default function App() {
     setErrorMessage('');
   };
 
+  // Synchronize route navigation with browser History API
+  const navigateTo = (view, targetPath) => {
+    setCurrentView(view);
+    if (typeof window !== 'undefined') {
+      const path = targetPath || (view === 'workspace' ? '/workspace' : '/');
+      if (window.location.pathname !== path) {
+        window.history.pushState({ view }, '', path);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const nextView = getViewFromPath(window.location.pathname);
+        setCurrentView(nextView);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   if (currentView === 'welcome') {
     return (
       <WelcomeScreen
-        onEnterWorkspace={() => setCurrentView('workspace')}
+        onEnterWorkspace={() => navigateTo('workspace', '/workspace')}
         onExploreScenarios={() => {
-          setCurrentView('workspace');
+          navigateTo('workspace', '/workspace');
           setTimeout(() => {
             const el = document.getElementById('guided-scenarios-panel');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -236,7 +280,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
-      <Header onOpenWelcome={() => setCurrentView('welcome')} />
+      <Header onOpenWelcome={() => navigateTo('welcome', '/')} />
 
       <div style={{
         display: 'flex',
@@ -262,7 +306,7 @@ export default function App() {
           }}
         >
           <button
-            onClick={() => setCurrentView('welcome')}
+            onClick={() => navigateTo('welcome', '/')}
             style={{
               background: 'transparent',
               border: 'none',

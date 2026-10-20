@@ -184,8 +184,9 @@ export default function WelcomeScreen({ onEnterWorkspace, onExploreScenarios }) 
               onClick={onEnterWorkspace}
               className="btn-primary"
               style={{ padding: '0.5rem 1.15rem', fontSize: '0.82rem' }}
+              title="Enter Demo Workspace"
             >
-              <span>Explore Demo</span>
+              <span>Enter Demo Workspace</span>
               <ArrowRight size={14} />
             </button>
           </div>
@@ -284,10 +285,9 @@ export default function WelcomeScreen({ onEnterWorkspace, onExploreScenarios }) 
                 boxShadow: '0 4px 18px rgba(217, 130, 82, 0.38)'
               }}
               title="Enter Demo Workspace"
-              aria-label="Explore Live Demo - Enter Demo Workspace"
+              aria-label="Enter Demo Workspace"
             >
-              <span>Explore Live Demo</span>
-              <span style={{ display: 'none' }}>Enter Demo Workspace</span>
+              <span>Enter Demo Workspace</span>
               <ArrowRight size={18} />
             </button>
 
@@ -701,8 +701,9 @@ export default function WelcomeScreen({ onEnterWorkspace, onExploreScenarios }) 
             onClick={onEnterWorkspace}
             className="btn-primary"
             style={{ padding: '1rem 2.5rem', fontSize: '1rem', fontWeight: 750 }}
+            title="Enter Demo Workspace"
           >
-            <span>Launch Live Demo Workspace</span>
+            <span>Enter Demo Workspace</span>
             <ArrowRight size={18} />
           </button>
         </div>

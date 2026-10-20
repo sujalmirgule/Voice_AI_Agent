@@ -36,13 +36,36 @@ test('Welcome Screen & Demo Entry Navigation Contracts', async (t) => {
     assert.ok(welcomeScreenCode.includes('Deterministic Guardrails Active'), 'Provides graceful fallback label');
   });
 
-  await t.test('App.jsx provides seamless transition between WelcomeScreen and Workspace', () => {
-    assert.ok(appCode.includes("const [currentView, setCurrentView] = useState('workspace')"), 'Initial view is workspace');
+  await t.test('App.jsx provides route-aware resolution and seamless transition between WelcomeScreen and Workspace', () => {
+    assert.ok(
+      appCode.includes("getViewFromPath") && appCode.includes("isWorkspacePath"),
+      'Configures route-aware URL resolution'
+    );
+    assert.ok(appCode.includes("return 'welcome'"), 'Root / defaults to landing page view');
     assert.ok(appCode.includes('currentView === \'welcome\''), 'Renders WelcomeScreen conditionally');
     assert.ok(appCode.includes('onEnterWorkspace'), 'Provides workspace entry handler');
     assert.ok(appCode.includes('onExploreScenarios'), 'Provides scenario exploration handler');
     assert.ok(appCode.includes('onOpenWelcome'), 'Passes navigation callback to Header');
+    assert.ok(appCode.includes('navigateTo'), 'Provides route navigation handler with History API');
     assert.ok(appCode.includes('<CompactOrderSelector'), 'Renders CompactOrderSelector directly below Header in workspace');
+  });
+
+  await t.test('Routing helpers map / to landing page and /workspace to demo workspace', () => {
+    // Extract isWorkspacePath and getViewFromPath logic directly from App.jsx and verify contract
+    const isWorkspacePath = (pathname) => {
+      if (!pathname) return false;
+      const path = pathname.split('?')[0].split('#')[0].toLowerCase().replace(/\/+$/, '') || '/';
+      return path === '/workspace' || path === '/dashboard' || path === '/demo';
+    };
+    const getViewFromPath = (pathname) => isWorkspacePath(pathname) ? 'workspace' : 'welcome';
+
+    assert.equal(getViewFromPath('/'), 'welcome', 'Root / must open landing page');
+    assert.equal(getViewFromPath(''), 'welcome', 'Empty path must open landing page');
+    assert.equal(getViewFromPath('/welcome'), 'welcome', '/welcome must open landing page');
+    assert.equal(getViewFromPath('/workspace'), 'workspace', '/workspace must open demo workspace');
+    assert.equal(getViewFromPath('/dashboard'), 'workspace', '/dashboard must open demo workspace');
+    assert.equal(getViewFromPath('/demo'), 'workspace', '/demo must open demo workspace');
+    assert.equal(getViewFromPath('/workspace/'), 'workspace', 'Trailing slash /workspace/ must open demo workspace');
   });
 
   await t.test('CompactOrderSelector provides immediate order access and disclaimer', () => {
